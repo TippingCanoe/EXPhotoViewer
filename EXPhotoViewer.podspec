@@ -38,7 +38,6 @@ Then if for example "anImageView" contains the image you would like to show, jus
   s.source       = { :git => "https://github.com/TippingCanoe/EXPhotoViewer.git", :tag => "1.0.2tc" }
 
   s.source_files = 'EXPhotoViewer/*.{h,m}'
-  s.resource  = 'EXPhotoViewer/*.{xib}'
 
   s.requires_arc = true
 
