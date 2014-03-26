@@ -10,13 +10,9 @@
 
 @interface EXPhotoViewer ()
 
-@property (nonatomic, retain) UIScrollView *zoomeableScrollView;
-@property (nonatomic, retain) UIImageView *theImageView;
-@property (nonatomic, retain) UIView* tempViewContainer;
 @property (nonatomic, assign) CGRect originalImageRect;
 @property (nonatomic, retain) UIViewController* controller;
 @property (nonatomic, retain) UIViewController* selfController;
-@property (nonatomic, retain) UIImageView* originalImage;
 
 @end
 
@@ -29,53 +25,28 @@
     }
 }
 
--(void)loadView {
-    self.view = [[UIView alloc] initWithFrame:[UIScreen mainScreen].bounds];
-    self.view.backgroundColor = [UIColor clearColor];
-    
-    UIScrollView* scrollView = [[UIScrollView alloc] initWithFrame:self.view.bounds];
-    scrollView.maximumZoomScale = 10.f;
-    scrollView.minimumZoomScale = 1.f;
-    scrollView.delegate = self;
-    scrollView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
-    [self.view addSubview: scrollView];
-    self.zoomeableScrollView = scrollView;
-    
-    UIImageView* imageView = [[UIImageView alloc] initWithFrame:self.view.bounds];
-    imageView.contentMode = UIViewContentModeScaleAspectFill;
-    imageView.clipsToBounds = YES;
-    [self.zoomeableScrollView addSubview: imageView];
-    self.theImageView = imageView;
+- (void) dealloc{
+    _controller = nil;
+    _selfController = nil;
 }
 
 - (void) showImageFrom:(UIImageView*) imageView {
     
     UIViewController* controller = [UIApplication sharedApplication].keyWindow.rootViewController;
-    self.tempViewContainer = [[UIView alloc] initWithFrame:controller.view.bounds];
-    self.tempViewContainer.backgroundColor = controller.view.backgroundColor;
-    controller.view.backgroundColor = [UIColor blackColor];
-    
-    for (UIView* subView in controller.view.subviews) {
-        [self.tempViewContainer addSubview:subView];
-    }
-    
-    [controller.view addSubview:self.tempViewContainer];
     
     self.controller = controller;
-    [controller.view addSubview:self.view];
     
     self.view.frame = controller.view.bounds;
-    self.view.backgroundColor = [UIColor clearColor];
+    dimView.alpha = 0.0;
     [controller.view addSubview:self.view];
     
-    self.theImageView.image = imageView.image;
-    self.originalImageRect = [imageView convertRect:imageView.bounds toView:self.view];
-    self.theImageView.frame = self.originalImageRect;
+    theImageView.image = imageView.image;
+    self.originalImageRect = [imageView convertRect:imageView.frame toView:self.view];
+    theImageView.frame = self.originalImageRect;
     
     [UIView animateWithDuration:0.3 animations:^{
-        self.view.backgroundColor = [UIColor colorWithWhite:0.0 alpha:0.7];
-        self.tempViewContainer.layer.transform = CATransform3DMakeScale(0.8, 0.8, 0.8);
-        self.theImageView.frame = [self centeredOnScreenImage:self.theImageView.image];
+        dimView.alpha = 1.0;
+        theImageView.frame = [self centeredOnScreenImage:theImageView.image];
     } completion:^(BOOL finished) {
         [self adjustScrollInsetsToCenterImage];
         UITapGestureRecognizer* tap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(onBackgroundTap)];
@@ -83,35 +54,28 @@
     }];
     
     self.selfController = self; //Stupid ARC I need to do this to avoid being dealloced :P
-    self.originalImage = imageView;
-    imageView.image = nil;
 }
 
 - (void) onBackgroundTap {
-    CGRect absoluteCGRect = [self.view convertRect:self.theImageView.frame fromView:self.theImageView.superview];
-    self.zoomeableScrollView.contentOffset = CGPointZero;
-    self.zoomeableScrollView.contentInset = UIEdgeInsetsZero;
-    self.theImageView.frame = absoluteCGRect;
+    
+    CGRect absoluteCGRect = [self.view convertRect:theImageView.frame fromView:theImageView.superview];
+    zoomeableScrollView.contentOffset = CGPointZero;
+    zoomeableScrollView.contentInset = UIEdgeInsetsZero;
+    theImageView.frame = absoluteCGRect;
     
     [UIView animateWithDuration:0.3 animations:^{
-        self.theImageView.frame = self.originalImageRect;
-        self.view.backgroundColor = [UIColor clearColor];
-        self.tempViewContainer.layer.transform = CATransform3DIdentity;
+        theImageView.frame = self.originalImageRect;
+        dimView.alpha = 0.0;
+        self.view.alpha = 0;
     }completion:^(BOOL finished) {
-        self.originalImage.image = self.theImageView.image;
-        self.controller.view.backgroundColor = self.tempViewContainer.backgroundColor;
-        for (UIView* subView in self.tempViewContainer.subviews) {
-            [self.controller.view addSubview:subView];
-        }
         [self.view removeFromSuperview];
-        [self.tempViewContainer removeFromSuperview];
     }];
     
     self.selfController = nil;//Ok ARC you can kill me now.
 }
 
 - (CGRect) centeredOnScreenImage:(UIImage*) image {
-    CGSize imageSize = [self imageSizesizeThatFitsForImage:self.theImageView.image];
+    CGSize imageSize = [self imageSizesizeThatFitsForImage:theImageView.image];
     CGPoint imageOrigin = CGPointMake(self.view.frame.size.width/2.0 - imageSize.width/2.0, self.view.frame.size.height/2.0 - imageSize.height/2.0);
     return CGRectMake(imageOrigin.x, imageOrigin.y, imageSize.width, imageSize.height);
 }
@@ -128,23 +92,23 @@
 
 #pragma mark - ZOOM
 - (UIView *)viewForZoomingInScrollView:(UIScrollView *)scrollView {
-    return self.theImageView;
+    return theImageView;
 }
 
 - (void) adjustScrollInsetsToCenterImage {
-    CGSize imageSize = [self imageSizesizeThatFitsForImage:self.theImageView.image];
-    self.zoomeableScrollView.zoomScale = 1.0;
-    self.theImageView.frame = CGRectMake(0, 0, imageSize.width, imageSize.height);
-    self.zoomeableScrollView.contentSize = self.theImageView.frame.size;
+    CGSize imageSize = [self imageSizesizeThatFitsForImage:theImageView.image];
+    zoomeableScrollView.zoomScale = 1.0;
+    theImageView.frame = CGRectMake(0, 0, imageSize.width, imageSize.height);
+    zoomeableScrollView.contentSize = theImageView.frame.size;
     
-    CGRect innerFrame = self.theImageView.frame;
-    CGRect scrollerBounds = self.zoomeableScrollView.bounds;
-    CGPoint myScrollViewOffset = self.zoomeableScrollView.contentOffset;
+    CGRect innerFrame = theImageView.frame;
+    CGRect scrollerBounds = zoomeableScrollView.bounds;
+    CGPoint myScrollViewOffset = zoomeableScrollView.contentOffset;
     
     if ( ( innerFrame.size.width < scrollerBounds.size.width ) || ( innerFrame.size.height < scrollerBounds.size.height ) )
     {
-        CGFloat tempx = self.theImageView.center.x - ( scrollerBounds.size.width / 2 );
-        CGFloat tempy = self.theImageView.center.y - ( scrollerBounds.size.height / 2 );
+        CGFloat tempx = theImageView.center.x - ( scrollerBounds.size.width / 2 );
+        CGFloat tempy = theImageView.center.y - ( scrollerBounds.size.height / 2 );
         myScrollViewOffset = CGPointMake( tempx, tempy);
     }
     
@@ -160,12 +124,12 @@
         anEdgeInset.bottom = -anEdgeInset.top; // I don't know why this needs to be negative, but that's what works
     }
     
-    self.zoomeableScrollView.contentOffset = myScrollViewOffset;
-    self.zoomeableScrollView.contentInset = anEdgeInset;
+    zoomeableScrollView.contentOffset = myScrollViewOffset;
+    zoomeableScrollView.contentInset = anEdgeInset;
 }
 
 - (void)scrollViewDidZoom:(UIScrollView *)scrollView {
-    UIView* view = self.theImageView;
+    UIView* view = theImageView;
     
     CGRect innerFrame = view.frame;
     CGRect scrollerBounds = scrollView.bounds;
