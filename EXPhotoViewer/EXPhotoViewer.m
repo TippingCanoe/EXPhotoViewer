@@ -58,9 +58,11 @@
     self.theImageView.image = imageView.image;
     self.originalImageRect = [imageView convertRect:imageView.bounds toView:self.view];
     self.theImageView.frame = self.originalImageRect;
+    self.view.alpha = 0;
     
     [UIView animateWithDuration:0.3 animations:^{
         self.theImageView.frame = [self centeredOnScreenImage:self.theImageView.image];
+        self.view.alpha = 1;
     } completion:^(BOOL finished) {
         [self adjustScrollInsetsToCenterImage];
         UITapGestureRecognizer* tap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(onBackgroundTap)];
